@@ -46,18 +46,18 @@ const App: React.FC = () => {
   };
 
   const handleCategorySelect = (categoryNameOrSlug: string) => {
+    if (!categoryNameOrSlug) return;
     const found = CATEGORIES.find(c => 
       c.name.toLowerCase() === categoryNameOrSlug.toLowerCase() || 
       c.slug.toLowerCase() === categoryNameOrSlug.toLowerCase()
     );
-    
     setSelectedCategory(found ? found.name : categoryNameOrSlug);
     navigate(AppView.CATEGORY);
   };
 
   const addToCart = (item: CartItem) => {
     setCartItems(prev => [...prev, item]);
-    showToast("Produto adicionado ao carrinho!");
+    showToast("Adicionado ao carrinho!");
     navigate(AppView.CART);
   };
 
@@ -108,7 +108,8 @@ const App: React.FC = () => {
         return <AdminLogin onBack={() => navigate(AppView.STOREFRONT)} onLoginSuccess={() => navigate(AppView.ADMIN_DASHBOARD)} />;
       
       case AppView.CUSTOMIZER: 
-        return <Customizer product={selectedProduct!} onNext={addToCart} onNavigate={navigate} cartCount={cartItems.length} />;
+        if (!selectedProduct) { navigate(AppView.STOREFRONT); return null; }
+        return <Customizer product={selectedProduct} onNext={addToCart} onNavigate={navigate} cartCount={cartItems.length} />;
       
       case AppView.CART: 
         return <Cart 
@@ -133,7 +134,7 @@ const App: React.FC = () => {
         return <OrderFlow view={currentView} onNext={() => navigate(AppView.ORDER_SUCCESS)} />;
       
       case AppView.ORDER_SUCCESS: 
-        return <Success cartItem={cartItems[0] || null} onNewOrder={() => { setCartItems([]); navigate(AppView.STOREFRONT); }} onTrack={() => navigate(AppView.ORDER_TRACKING)} onCopyPix={() => showToast("Chave Pix copiada!")} />;
+        return <Success cartItem={cartItems[0] || null} onNewOrder={() => { setCartItems([]); navigate(AppView.STOREFRONT); }} onTrack={() => navigate(AppView.ORDER_TRACKING)} onCopyPix={() => showToast("Copiado!")} />;
       
       case AppView.ORDER_DENIED:
       case AppView.ORDER_TRACKING:
@@ -156,14 +157,16 @@ const App: React.FC = () => {
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-zinc-950 text-white' : 'bg-white text-slate-900'} transition-colors duration-300 font-sans relative`}>
       {renderView()}
       <ChatWidget />
+      
       {toast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[300] animate-toast">
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${toast.type === 'success' ? 'bg-white dark:bg-zinc-900 border-brand-success/20 text-brand-success' : 'bg-neutral-900 text-white border-white/10'}`}>
-            <span className="material-icons-round text-xl">{toast.type === 'success' ? 'check_circle' : 'info'}</span>
+          <div className="bg-neutral-900 text-white border border-white/10 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <span className="material-icons-round text-brand-success">check_circle</span>
             <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
           </div>
         </div>
       )}
+
       <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-[150]">
         <button className="bg-white dark:bg-zinc-800 p-3.5 rounded-2xl shadow-2xl text-zinc-500 border border-slate-100 dark:border-zinc-700 hover:scale-110 transition-all" onClick={toggleDarkMode}>
           <span className="material-icons-round text-xl">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
@@ -172,6 +175,7 @@ const App: React.FC = () => {
           <span className="material-icons-round text-xl">alternate_email</span>
         </button>
       </div>
+
       {isPreviewingEmail && (
         <EmailTemplate order={{ id: '84920', customer: 'Ricardo Souza', total: 450.00, status: 'Pago', date: '15 Out 2023' }} onClose={() => setIsPreviewingEmail(false)} />
       )}

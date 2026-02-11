@@ -1,110 +1,153 @@
 
-import React, { useState, useMemo } from 'react';
-import { CATEGORIES, MOCK_PRODUCTS } from '../constants';
-import { Product, AppView } from '../types';
+import React, { useState } from 'react';
+import { ADDONS } from '../constants';
+import { CartItem, Addon, Product, AppView } from '../types';
 import Header from './Header';
 import Footer from './Footer';
-import ProductCard from './ProductCard';
 
 interface Props {
-  category: string;
-  onSelectProduct: (product: Product) => void;
+  product: Product;
+  onNext: (item: CartItem) => void;
   onNavigate: (view: AppView) => void;
-  onSelectCategory: (category: string) => void;
   cartCount: number;
 }
 
-const CategoryPage: React.FC<Props> = ({ category, onSelectProduct, onNavigate, onSelectCategory, cartCount }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Normalização para busca robusta
-  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const Customizer: React.FC<Props> = ({ product, onNext, onNavigate, cartCount }) => {
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+  const [quantity, setQuantity] = useState(1);
 
-  const metadata = useMemo(() => {
-    const target = normalize(category);
-    return CATEGORIES.find(c => normalize(c.name) === target || normalize(c.slug) === target) || CATEGORIES[0];
-  }, [category]);
+  if (!product) return null;
 
-  const filteredProducts = useMemo(() => {
-    const target = normalize(category);
-    return MOCK_PRODUCTS.filter(p => 
-      normalize(p.category) === target &&
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [category, searchQuery]);
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800';
+  };
+
+  const toggleAddon = (addon: Addon) => {
+    if (selectedAddons.find(a => a.id === addon.id)) {
+      setSelectedAddons(selectedAddons.filter(a => a.id !== addon.id));
+    } else {
+      setSelectedAddons([...selectedAddons, addon]);
+    }
+  };
+
+  const totalPrice = (product.price + selectedAddons.reduce((acc, a) => acc + a.price, 0)) * quantity;
+
+  const handleNext = () => {
+    onNext({
+      product,
+      addons: selectedAddons,
+      quantity,
+      totalPrice
+    });
+  };
 
   return (
-    <div className="flex flex-col w-full overflow-x-hidden min-h-screen bg-white dark:bg-zinc-950">
-      <Header onNavigate={onNavigate} cartCount={cartCount} onSelectCategory={onSelectCategory} />
+    <div className="bg-slate-50 dark:bg-zinc-950 min-h-screen flex flex-col">
+      <Header onNavigate={onNavigate} cartCount={cartCount} />
+      
+      <main className="flex-1 flex items-center justify-center p-4 md:p-10">
+        <div className="bg-white dark:bg-zinc-900 w-full max-w-6xl h-auto md:h-[800px] rounded-[48px] overflow-hidden shadow-[0_32px_128px_-32px_rgba(0,0,0,0.1)] flex flex-col md:flex-row border border-slate-100 dark:border-zinc-800 animate-toast">
+          
+          <div className={`w-full md:w-[45%] relative ${product.bgColor || 'bg-slate-100'} p-12 md:p-20 overflow-hidden flex items-center justify-center min-h-[400px]`}>
+            <div className="relative w-full h-full flex items-center justify-center group">
+              <img 
+                alt={product.name} 
+                className="max-w-[120%] max-h-full object-contain mix-blend-multiply drop-shadow-[0_40px_80px_rgba(0,0,0,0.2)] transition-transform duration-1000 group-hover:scale-105" 
+                src={product.image} 
+                loading="eager"
+                onError={handleImageError}
+              />
+            </div>
+            
+            <div className="absolute top-10 left-10">
+               <span className="px-5 py-2 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary rounded-2xl shadow-xl border border-white/50 dark:border-white/10">{product.category}</span>
+            </div>
 
-      <section className="px-4 md:px-8 py-10 max-w-7xl mx-auto w-full">
-        <div className={`relative h-[300px] md:h-[450px] ${metadata.accentColor || 'bg-zinc-900'} rounded-[48px] overflow-hidden flex items-center px-12 md:px-20 group shadow-2xl animate-fade-in`}>
-          <div className="absolute inset-0">
-            <img 
-              src={metadata.bannerImage} 
-              className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-[7s]" 
-              alt={metadata.name} 
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
+            <div className="absolute bottom-10 left-10 right-10 hidden md:block">
+              <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-3xl border border-white/30 dark:border-white/5 rounded-[32px] p-8 shadow-2xl">
+                 <div className="flex items-center gap-1.5 mb-3">
+                    {[1,2,3,4,5].map(i => (
+                      <span key={i} className="material-icons-round text-brand-pending text-sm">star</span>
+                    ))}
+                    <span className="text-[10px] font-black ml-3 text-slate-900 dark:text-white uppercase tracking-widest">{product.rating} Avaliações</span>
+                 </div>
+                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed opacity-90">{product.description}</p>
+              </div>
+            </div>
           </div>
-          <div className="relative z-10 max-w-xl animate-toast">
-            <span className="inline-block px-4 py-1.5 bg-brand-primary text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-6">Coleção Oficial</span>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6">
-              {metadata.name}<span className="text-brand-primary">.</span>
-            </h1>
-            <p className="text-zinc-300 font-medium text-lg max-w-md leading-relaxed opacity-90">{metadata.description}</p>
+
+          <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-900">
+            <div className="p-10 md:p-14 flex justify-between items-start border-b border-slate-50 dark:border-zinc-800/50 shrink-0">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-black leading-none tracking-tight mb-4">{product.name}</h1>
+                <div className="flex items-center gap-4">
+                  <span className="text-brand-primary font-black text-3xl">R$ {product.price.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest px-3 py-1 border border-slate-200 dark:border-zinc-800 rounded-full">Disponível</span>
+                </div>
+              </div>
+              <button onClick={() => onNavigate(AppView.STOREFRONT)} className="w-12 h-12 bg-slate-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-slate-400 hover:text-brand-primary transition-all">
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-10 md:px-14 py-10 custom-scrollbar">
+              <section className="mb-12">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex flex-col">
+                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Serviços & Proteção</h3>
+                    <p className="text-xs text-slate-300 mt-1">Personalize sua experiência</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {ADDONS.map((addon) => (
+                    <label key={addon.id} className={`flex items-center justify-between p-6 border-2 rounded-3xl cursor-pointer transition-all group ${
+                      selectedAddons.find(a => a.id === addon.id) ? 'border-brand-primary bg-brand-primary/5' : 'bg-slate-50 dark:bg-zinc-800/30 border-transparent hover:border-brand-primary/20'
+                    }`}>
+                      <div className="flex items-center gap-5">
+                        <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all ${
+                          selectedAddons.find(a => a.id === addon.id) ? 'bg-brand-primary border-brand-primary scale-110' : 'border-slate-200 dark:border-zinc-700'
+                        }`}>
+                          {selectedAddons.find(a => a.id === addon.id) && <span className="material-icons-round text-white text-sm">check</span>}
+                        </div>
+                        <input className="hidden" type="checkbox" onChange={() => toggleAddon(addon)} checked={!!selectedAddons.find(a => a.id === addon.id)} />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 dark:text-white">{addon.name}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Ativação Instantânea</span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-black text-brand-primary">+ R$ {addon.price.toFixed(2)}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="p-10 md:p-14 border-t border-slate-50 dark:border-zinc-800 flex flex-wrap items-center gap-8 shrink-0 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl">
+              <div className="flex flex-col gap-3">
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quantidade</span>
+                 <div className="flex items-center bg-slate-100 dark:bg-zinc-800 rounded-2xl p-1.5 border border-slate-200 dark:border-zinc-700 h-16">
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white dark:hover:bg-zinc-700 text-slate-400 transition-all active:scale-90"><span className="material-icons-round">remove</span></button>
+                  <span className="px-6 font-black text-xl w-16 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity(quantity + 1)} className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white dark:hover:bg-zinc-700 text-slate-400 transition-all active:scale-90"><span className="material-icons-round">add</span></button>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleNext}
+                className="flex-1 h-20 bg-brand-primary text-white rounded-[24px] font-black uppercase tracking-[0.3em] text-[10px] flex items-center justify-between px-10 shadow-2xl shadow-brand-primary/30 hover:scale-[1.01] active:scale-[0.98] transition-all group"
+              >
+                <span className="flex items-center gap-4">
+                  <span className="material-icons-round text-2xl group-hover:rotate-12 transition-transform">shopping_bag</span>
+                  Adicionar ao Carrinho
+                </span>
+                <div className="flex flex-col items-end border-l border-white/20 pl-8">
+                  <span className="text-[9px] opacity-60 font-black">TOTAL</span>
+                  <span className="text-2xl tracking-tight">R$ {totalPrice.toFixed(2)}</span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      <section className="px-4 md:px-8 py-8 max-w-7xl mx-auto w-full sticky top-[136px] z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-slate-100 dark:border-zinc-900">
-        <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-             <button onClick={() => onNavigate(AppView.STOREFRONT)} className="hover:text-brand-primary">Início</button>
-             <span className="material-icons-round text-sm">chevron_right</span>
-             <span className="text-slate-900 dark:text-white font-black">{metadata.name}</span>
-          </div>
-
-          <div className="relative w-full md:w-96">
-            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><span className="material-icons-round text-lg">search</span></span>
-            <input 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Buscar em ${metadata.name}...`}
-              className="w-full bg-slate-50 dark:bg-zinc-900 border-none rounded-2xl py-3.5 pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 transition-all shadow-sm"
-            />
-          </div>
-
-          <div className="flex items-center gap-6">
-             <div className="text-right shrink-0">
-                <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest leading-none mb-1">Encontrados</p>
-                <span className="text-xl font-black text-slate-900 dark:text-white leading-none">{filteredProducts.length.toString().padStart(2, '0')}</span>
-             </div>
-             <div className="h-8 w-px bg-slate-100 dark:bg-zinc-800"></div>
-             <select className="bg-transparent border-none text-xs font-bold text-slate-900 dark:text-white focus:ring-0 cursor-pointer p-0">
-                <option>Mais Relevantes</option>
-                <option>Menor Preço</option>
-             </select>
-          </div>
-        </div>
-      </section>
-
-      <main className="flex-1 px-4 md:px-8 py-16 max-w-7xl mx-auto w-full">
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 lg:gap-10 animate-toast">
-            {filteredProducts.map((prod) => (
-              <ProductCard key={prod.id} product={prod} onSelect={onSelectProduct} onCategorySelect={onSelectCategory} />
-            ))}
-          </div>
-        ) : (
-          <div className="py-40 text-center bg-slate-50/50 dark:bg-zinc-900/30 rounded-[80px] border-2 border-dashed border-slate-100 dark:border-zinc-800 mx-2">
-             <div className="w-24 h-24 bg-white dark:bg-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-10 text-slate-200 shadow-sm"><span className="material-icons-round text-6xl">{metadata.icon}</span></div>
-             <h3 className="text-3xl font-black mb-4 tracking-tighter uppercase">Nenhum item disponível</h3>
-             <p className="text-slate-400 max-w-md mx-auto font-medium text-lg leading-relaxed">Sua busca não retornou resultados nesta categoria. Explore nossas outras coleções premium.</p>
-             <button onClick={() => onNavigate(AppView.STOREFRONT)} className="mt-10 px-12 py-5 bg-brand-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl hover:scale-105 transition-all">Ver Loja Completa</button>
-          </div>
-        )}
       </main>
 
       <Footer onNavigate={onNavigate} />
@@ -112,4 +155,4 @@ const CategoryPage: React.FC<Props> = ({ category, onSelectProduct, onNavigate, 
   );
 };
 
-export default CategoryPage;
+export default Customizer;
