@@ -193,3 +193,4 @@ Uso, redistribuição ou comercialização requer autorização do mantenedor.
 *   Frontend (React / Next)
 *   Deploy e CI/CD
 *   Empacotamento SaaS
+-DESENVOLVIDOR POR VINIA AMARAL TECH LABS
