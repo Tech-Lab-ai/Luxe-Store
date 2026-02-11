@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { AppView, CartItem, Product, Article, Order } from './types';
+import React, { useState } from 'react';
+import { AppView, CartItem, Product, Article } from './types';
 import Storefront from './components/Storefront';
 import Customizer from './components/Customizer';
 import Cart from './components/Cart';
@@ -46,14 +46,12 @@ const App: React.FC = () => {
   };
 
   const handleCategorySelect = (categoryNameOrSlug: string) => {
-    // Normalização para encontrar a categoria correta no constants
     const found = CATEGORIES.find(c => 
       c.name.toLowerCase() === categoryNameOrSlug.toLowerCase() || 
       c.slug.toLowerCase() === categoryNameOrSlug.toLowerCase()
     );
     
-    const finalCategory = found ? found.name : categoryNameOrSlug;
-    setSelectedCategory(finalCategory);
+    setSelectedCategory(found ? found.name : categoryNameOrSlug);
     navigate(AppView.CATEGORY);
   };
 
@@ -61,11 +59,6 @@ const App: React.FC = () => {
     setCartItems(prev => [...prev, item]);
     showToast("Produto adicionado ao carrinho!");
     navigate(AppView.CART);
-  };
-
-  const selectArticle = (article: Article) => {
-    setSelectedArticle(article);
-    navigate(AppView.BLOG_ARTICLE);
   };
 
   const cartTotal = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
@@ -90,10 +83,7 @@ const App: React.FC = () => {
         />;
 
       case AppView.FAQ:
-        return <FaqPage 
-          onNavigate={navigate} 
-          cartCount={cartItems.length} 
-        />;
+        return <FaqPage onNavigate={navigate} cartCount={cartItems.length} />;
 
       case AppView.ABOUT:
       case AppView.BLOG:
@@ -103,7 +93,7 @@ const App: React.FC = () => {
         return <Institutional 
           view={currentView} 
           article={selectedArticle}
-          onSelectArticle={selectArticle}
+          onSelectArticle={(art) => { setSelectedArticle(art); navigate(AppView.BLOG_ARTICLE); }}
           onBack={() => navigate(AppView.STOREFRONT)} 
           onNavigate={navigate} 
           cartCount={cartItems.length}
@@ -112,28 +102,13 @@ const App: React.FC = () => {
       case AppView.LOGIN:
       case AppView.SIGNUP:
       case AppView.RECOVER_PASSWORD: 
-        return <Auth 
-          view={currentView} 
-          onBack={() => navigate(AppView.STOREFRONT)} 
-          onNavigate={navigate} 
-        />;
+        return <Auth view={currentView} onBack={() => navigate(AppView.STOREFRONT)} onNavigate={navigate} />;
 
       case AppView.ADMIN_LOGIN:
-        return <AdminLogin 
-          onBack={() => navigate(AppView.STOREFRONT)} 
-          onLoginSuccess={() => {
-            showToast("Acesso corporativo autorizado.");
-            navigate(AppView.ADMIN_DASHBOARD);
-          }} 
-        />;
+        return <AdminLogin onBack={() => navigate(AppView.STOREFRONT)} onLoginSuccess={() => navigate(AppView.ADMIN_DASHBOARD)} />;
       
       case AppView.CUSTOMIZER: 
-        return <Customizer 
-          product={selectedProduct!} 
-          onNext={addToCart} 
-          onNavigate={navigate}
-          cartCount={cartItems.length}
-        />;
+        return <Customizer product={selectedProduct!} onNext={addToCart} onNavigate={navigate} cartCount={cartItems.length} />;
       
       case AppView.CART: 
         return <Cart 
@@ -141,87 +116,46 @@ const App: React.FC = () => {
           total={cartTotal} 
           onNext={() => navigate(AppView.CHECKOUT_ID)} 
           onBack={() => navigate(AppView.STOREFRONT)} 
-          onRemove={(idx) => {
-            setCartItems(prev => prev.filter((_, i) => i !== idx));
-            showToast("Item removido", "error");
-          }} 
-          onApplyCoupon={() => showToast("Cupom ativado com sucesso!")}
+          onRemove={(idx) => setCartItems(prev => prev.filter((_, i) => i !== idx))} 
+          onApplyCoupon={() => showToast("Cupom ativado!")}
         />;
       
       case AppView.CHECKOUT_ID: 
-        return <Identification 
-          cartTotal={cartTotal} 
-          onNext={() => navigate(AppView.CHECKOUT_FULFILLMENT)} 
-          onBack={() => navigate(AppView.CART)} 
-        />;
+        return <Identification cartTotal={cartTotal} onNext={() => navigate(AppView.CHECKOUT_FULFILLMENT)} onBack={() => navigate(AppView.CART)} />;
       
       case AppView.CHECKOUT_FULFILLMENT: 
-        return <Fulfillment 
-          cartTotal={cartTotal} 
-          onNext={() => navigate(AppView.CHECKOUT_PAYMENT)} 
-          onBack={() => navigate(AppView.CHECKOUT_ID)} 
-        />;
+        return <Fulfillment cartTotal={cartTotal} onNext={() => navigate(AppView.CHECKOUT_PAYMENT)} onBack={() => navigate(AppView.CHECKOUT_ID)} />;
       
       case AppView.CHECKOUT_PAYMENT: 
-        return <Payment 
-          cartTotal={cartTotal} 
-          onNext={() => navigate(AppView.CHECKOUT_PROCESSING)} 
-          onBack={() => navigate(AppView.CHECKOUT_FULFILLMENT)} 
-        />;
+        return <Payment cartTotal={cartTotal} onNext={() => navigate(AppView.CHECKOUT_PROCESSING)} onBack={() => navigate(AppView.CHECKOUT_FULFILLMENT)} />;
       
       case AppView.CHECKOUT_PROCESSING: 
         return <OrderFlow view={currentView} onNext={() => navigate(AppView.ORDER_SUCCESS)} />;
       
       case AppView.ORDER_SUCCESS: 
-        return <Success 
-          cartItem={cartItems[0] || null} 
-          onNewOrder={() => { setCartItems([]); navigate(AppView.STOREFRONT); }} 
-          onTrack={() => navigate(AppView.ORDER_TRACKING)} 
-          onCopyPix={() => showToast("Código Pix copiado!")}
-        />;
+        return <Success cartItem={cartItems[0] || null} onNewOrder={() => { setCartItems([]); navigate(AppView.STOREFRONT); }} onTrack={() => navigate(AppView.ORDER_TRACKING)} onCopyPix={() => showToast("Chave Pix copiada!")} />;
       
       case AppView.ORDER_DENIED:
       case AppView.ORDER_TRACKING:
       case AppView.ORDER_MAP:
       case AppView.ORDER_NPS: 
-        return <OrderFlow 
-          view={currentView} 
-          onBack={() => navigate(AppView.STOREFRONT)} 
-          onNavigate={navigate} 
-          onNpsSubmit={() => { showToast("Obrigado pelo seu feedback!"); navigate(AppView.STOREFRONT); }}
-        />;
+        return <OrderFlow view={currentView} onBack={() => navigate(AppView.STOREFRONT)} onNavigate={navigate} onNpsSubmit={() => navigate(AppView.STOREFRONT)} />;
       
       case AppView.CUSTOMER_DASHBOARD: 
-        return <CustomerPanel 
-          onBack={() => navigate(AppView.STOREFRONT)} 
-          onNavigate={navigate} 
-          onSaveProfile={() => showToast("Perfil atualizado!")}
-        />;
+        return <CustomerPanel onBack={() => navigate(AppView.STOREFRONT)} onNavigate={navigate} onSaveProfile={() => showToast("Perfil salvo!")} />;
       
       case AppView.ADMIN_DASHBOARD: 
-        return <AdminDashboard 
-          onBack={() => navigate(AppView.STOREFRONT)} 
-          onAction={() => showToast("Ação administrativa concluída")}
-        />;
+        return <AdminDashboard onBack={() => navigate(AppView.STOREFRONT)} onAction={() => {}} />;
       
       default: 
-        return <Storefront 
-          onSelectProduct={(p) => { setSelectedProduct(p); navigate(AppView.CUSTOMIZER); }} 
-          onNavigate={navigate} 
-          onSelectCategory={handleCategorySelect}
-          cartCount={cartItems.length} 
-        />;
+        return <Storefront onSelectProduct={(p) => { setSelectedProduct(p); navigate(AppView.CUSTOMIZER); }} onNavigate={navigate} onSelectCategory={handleCategorySelect} cartCount={cartItems.length} />;
     }
   };
-
-  const isAdminView = currentView === AppView.ADMIN_DASHBOARD || currentView === AppView.ADMIN_LOGIN;
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-zinc-950 text-white' : 'bg-white text-slate-900'} transition-colors duration-300 font-sans relative`}>
       {renderView()}
-      
-      {!isAdminView && <ChatWidget />}
-      
+      <ChatWidget />
       {toast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[300] animate-toast">
           <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${toast.type === 'success' ? 'bg-white dark:bg-zinc-900 border-brand-success/20 text-brand-success' : 'bg-neutral-900 text-white border-white/10'}`}>
@@ -230,29 +164,16 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-[150]">
-        <button 
-          title="Alternar Modo Escuro"
-          className="bg-white dark:bg-zinc-800 p-3.5 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] text-zinc-500 border border-slate-100 dark:border-zinc-700 hover:scale-110 active:scale-95 transition-all" 
-          onClick={toggleDarkMode}
-        >
+        <button className="bg-white dark:bg-zinc-800 p-3.5 rounded-2xl shadow-2xl text-zinc-500 border border-slate-100 dark:border-zinc-700 hover:scale-110 transition-all" onClick={toggleDarkMode}>
           <span className="material-icons-round text-xl">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
         </button>
-        <button 
-          title="Preview de Email Transacional"
-          className="bg-white dark:bg-zinc-800 p-3.5 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] text-brand-primary border border-slate-100 dark:border-zinc-700 hover:scale-110 active:scale-95 transition-all" 
-          onClick={() => setIsPreviewingEmail(true)}
-        >
+        <button className="bg-white dark:bg-zinc-800 p-3.5 rounded-2xl shadow-2xl text-brand-primary border border-slate-100 dark:border-zinc-700 hover:scale-110 transition-all" onClick={() => setIsPreviewingEmail(true)}>
           <span className="material-icons-round text-xl">alternate_email</span>
         </button>
       </div>
-
       {isPreviewingEmail && (
-        <EmailTemplate 
-          order={{ id: '84920', customer: 'Ricardo Souza', total: 450.00, status: 'Pago', date: '15 Out 2023' }} 
-          onClose={() => setIsPreviewingEmail(false)} 
-        />
+        <EmailTemplate order={{ id: '84920', customer: 'Ricardo Souza', total: 450.00, status: 'Pago', date: '15 Out 2023' }} onClose={() => setIsPreviewingEmail(false)} />
       )}
     </div>
   );

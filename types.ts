@@ -18,7 +18,7 @@ export enum AppView {
   // 3. Catálogo
   CUSTOMIZER = 'CUSTOMIZER',
   CART = 'CART',
-  CATEGORY = 'CATEGORY', // Rota dinâmica para todas as categorias
+  CATEGORY = 'CATEGORY', // Rota Universal Única
 
   // 4. Checkout
   CHECKOUT_ID = 'CHECKOUT_ID',
